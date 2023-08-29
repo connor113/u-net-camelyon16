@@ -468,13 +468,10 @@ def visualise_patch_and_label(patch, label):
     # Original image
     ax[0].imshow(patch)
     ax[0].axis('off')
-    ax[0].set_title('Patch')
+    ax[0].set_title('Patch with Dense Labels Ovelayed')
 
     # Label
-    ax[1].imshow(coloured_label, alpha=0.4)  # Overlay with transparency
-    ax[1].axis('off')
-    ax[1].set_title('Label')
-
+    ax[0].imshow(coloured_label, alpha=0.4)  # Overlay with transparency
     plt.tight_layout()
     plt.show()
 
