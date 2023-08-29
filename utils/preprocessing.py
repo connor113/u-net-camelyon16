@@ -464,7 +464,7 @@ def visualise_patch_and_label(patch, label):
     coloured_label[label == 1] = [255, 0, 0]  # Red color for foreground
     
     # Plotting
-    plt.figure(figsize=(10, 10))
+    plt.figure(figsize=(5, 5))
     plt.imshow(patch)
     plt.imshow(coloured_label, alpha=0.4)  # Overlay with transparency
     plt.axis('off')
