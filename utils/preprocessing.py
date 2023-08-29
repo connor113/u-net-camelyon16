@@ -477,3 +477,4 @@ def visualise_patch_and_label(patch, label):
 
     plt.tight_layout()
     plt.show()
+
