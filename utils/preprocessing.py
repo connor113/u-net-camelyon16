@@ -1,21 +1,4 @@
 import os
-
-# Get the current working directory
-current_path = os.getcwd()
-
-# Define the relative paths to your data and .venv folders
-data_path = os.path.join(current_path, 'data')
-venv_path = os.path.join(current_path, '.venv')
-
-# Use the relative paths in your code
-OPENSLIDE_PATH = os.path.join(venv_path, 'Lib', 'site-packages', 'openslide-win64-20230414', 'bin')
-
-if hasattr(os, 'add_dll_directory'):
-    with os.add_dll_directory(OPENSLIDE_PATH):
-        import openslide
-else:
-    import openslide
-
 from openslide import open_slide
 import numpy as np
 from matplotlib import pyplot as plt
@@ -466,3 +449,31 @@ def assign_labels(patch_size, patch_origin, gt_mask):
                      patch_origin[1]:patch_origin[1]+patch_size]
 
     return labels
+
+
+def visualise_patch_and_label(patch, label):
+    """
+    Visualise a patch and its corresponding label.
+
+    Parameters:
+    - patch (np.array): A 3D numpy array representing the patch.
+    - label (np.array): A 2D numpy array representing the label for each pixel in the patch.
+
+    """
+    coloured_label = np.zeros((label.shape[0], label.shape[1], 3), dtype=np.uint8)
+    coloured_label[label == 1] = [255, 0, 0]  # Red color for foreground
+    # Plotting
+    fig, ax = plt.subplots(1, 2, figsize=(20, 10))
+
+    # Original image
+    ax[0].imshow(patch)
+    ax[0].axis('off')
+    ax[0].set_title('Patch')
+
+    # Label
+    ax[1].imshow(coloured_label, alpha=0.4)  # Overlay with transparency
+    ax[1].axis('off')
+    ax[1].set_title('Label')
+
+    plt.tight_layout()
+    plt.show()
