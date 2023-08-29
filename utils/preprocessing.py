@@ -462,16 +462,12 @@ def visualise_patch_and_label(patch, label):
     """
     coloured_label = np.zeros((label.shape[0], label.shape[1], 3), dtype=np.uint8)
     coloured_label[label == 1] = [255, 0, 0]  # Red color for foreground
+    
     # Plotting
-    fig, ax = plt.subplots(1, 2, figsize=(20, 10))
-
-    # Original image
-    ax[0].imshow(patch)
-    ax[0].axis('off')
-    ax[0].set_title('Patch with Dense Labels Ovelayed')
-
-    # Label
-    ax[0].imshow(coloured_label, alpha=0.4)  # Overlay with transparency
+    plt.figure(figsize=(10, 10))
+    plt.imshow(patch)
+    plt.imshow(coloured_label, alpha=0.4)  # Overlay with transparency
+    plt.axis('off')
     plt.tight_layout()
     plt.show()
 
