@@ -105,7 +105,7 @@ def visualize_mask_on_slide_side_by_side(slide, mask, level=0):
     # Create a colored mask (e.g., red for foreground)
     upsampled_mask = cv2.resize(mask, slide.level_dimensions[level], interpolation=cv2.INTER_LINEAR)
     colored_mask = np.zeros((upsampled_mask.shape[0], upsampled_mask.shape[1], 3), dtype=np.uint8)
-    colored_mask[mask == 1] = [255, 0, 0]  # Red color for foreground
+    colored_mask[upsampled_mask == 1] = [255, 0, 0]  # Red color for foreground
 
     # Plotting
     fig, ax = plt.subplots(1, 2, figsize=(20, 10))
