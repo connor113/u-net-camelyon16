@@ -78,7 +78,7 @@ def visualize_mask_on_slide(slide, mask, level=0):
     # Create a colored mask (e.g., red for foreground)
     upsampled_mask = cv2.resize(mask, slide.level_dimensions[level], interpolation=cv2.INTER_LINEAR)
     colored_mask = np.zeros((upsampled_mask.shape[0], upsampled_mask.shape[1], 3), dtype=np.uint8)
-    colored_mask[mask == 1] = [255, 0, 0]  # Red color for foreground
+    colored_mask[upsampled_mask == 1] = [255, 0, 0]  # Red color for foreground
 
     # Plotting
     plt.figure(figsize=(10, 10))
@@ -117,7 +117,7 @@ def visualize_mask_on_slide_side_by_side(slide, mask, level=0):
     ax[0].set_title('Image with Mask Overlay')
     
     # Binary mask
-    ax[1].imshow(mask, cmap='gray')
+    ax[1].imshow(upsampled_mask, cmap='gray')
     ax[1].axis('off')
     ax[1].set_title('Binary Mask')
     
