@@ -76,7 +76,8 @@ def visualize_mask_on_slide(slide, mask, level=0):
     img = np.array(img)[:, :, :3]  # Exclude the alpha channel
 
     # Create a colored mask (e.g., red for foreground)
-    colored_mask = np.zeros((mask.shape[0], mask.shape[1], 3), dtype=np.uint8)
+    upsampled_mask = cv2.resize(mask, slide.level_dimensions[level], interpolation=cv2.INTER_LINEAR)
+    colored_mask = np.zeros((upsampled_mask.shape[0], upsampled_mask.shape[1], 3), dtype=np.uint8)
     colored_mask[mask == 1] = [255, 0, 0]  # Red color for foreground
 
     # Plotting
@@ -102,7 +103,8 @@ def visualize_mask_on_slide_side_by_side(slide, mask, level=0):
     img = np.array(img)[:, :, :3]  # Exclude the alpha channel
 
     # Create a colored mask (e.g., red for foreground)
-    colored_mask = np.zeros((mask.shape[0], mask.shape[1], 3), dtype=np.uint8)
+    upsampled_mask = cv2.resize(mask, slide.level_dimensions[level], interpolation=cv2.INTER_LINEAR)
+    colored_mask = np.zeros((upsampled_mask.shape[0], upsampled_mask.shape[1], 3), dtype=np.uint8)
     colored_mask[mask == 1] = [255, 0, 0]  # Red color for foreground
 
     # Plotting
@@ -424,7 +426,7 @@ def sample_patches(slide_path, patch_size, threshold=0.5, pos_emb=False):
         return patches,
 
 
-def assign_labels(patch_size, patch_origin, gt_mask):
+def assign_dense_labels(patch_size, patch_origin, gt_mask):
     """
     Assign dense labels to a patch based on the ground truth mask.
 
@@ -447,6 +449,33 @@ def assign_labels(patch_size, patch_origin, gt_mask):
     # Extract and assign the labels for the patch from the ground truth mask
     labels = gt_mask[patch_origin[0]:patch_origin[0]+patch_size,
                      patch_origin[1]:patch_origin[1]+patch_size]
+
+    return labels
+
+
+def assign_patch_labels(patch_size, patch_orignins, gt_mask):
+    """
+    Assign labels to a list of patches based on the ground truth mask.
+
+    Parameters:
+    - patch_size (int): The size of the patch (both width and height) for which labels are to be assigned.
+    - patch_origins (list): A list of tuples containing the y (row) and x (column) coordinates of the top-left 
+                            corner of each patch in the ground truth mask.
+    - gt_mask (np.array): A 2D numpy array representing the ground truth mask where each pixel value indicates 
+                          its label.
+
+    Returns:
+    - labels (list): A list of 2D numpy arrays of shape (patch_size, patch_size) containing the labels for each 
+                     pixel in the patch.
+
+    """
+
+    # Initialize a list to hold the labels
+    labels = []
+
+    # Loop through each patch and assign the labels
+    for patch_origin in patch_orignins:
+        labels.append(assign_dense_labels(patch_size, patch_origin, gt_mask))
 
     return labels
 
