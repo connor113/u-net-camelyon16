@@ -453,7 +453,7 @@ def assign_dense_labels(patch_size, patch_origin, gt_mask):
     return labels
 
 
-def assign_patch_labels(patch_size, patch_orignins, gt_mask):
+def assign_patch_labels(patch_size, patch_origins, gt_mask):
     """
     Assign labels to a list of patches based on the ground truth mask.
 
@@ -474,7 +474,7 @@ def assign_patch_labels(patch_size, patch_orignins, gt_mask):
     labels = []
 
     # Loop through each patch and assign the labels
-    for patch_origin in patch_orignins:
+    for patch_origin in patch_origins:
         labels.append(assign_dense_labels(patch_size, patch_origin, gt_mask))
 
     return labels
