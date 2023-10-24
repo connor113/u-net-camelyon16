@@ -1,4 +1,5 @@
 import os
+import logging
 from openslide import open_slide
 import numpy as np
 from matplotlib import pyplot as plt
@@ -60,6 +61,79 @@ def foreground_background_segmentation(slide_path, input_level=3, output_level=0
 
     return combined_mask
 
+
+def extract_and_save_patches(slide_path: str, save_path: str, tissue_threshold: float, 
+                                  input_level: int = 3, output_level: int = 0,
+                                  patch_size: tuple = (256, 256), stride: tuple = (256, 256),
+                                  enable_logging: bool = False):
+    """
+    Extract and save patches from a whole slide image based on a tissue threshold.
+    Patches are saved in an HDF5 file.
+    
+    Parameters:
+        slide_path (str): Path to the whole slide image.
+        save_path (str): Path to the HDF5 file where patches will be saved.
+        tissue_threshold (float): Minimum percentage of tissue required to save a patch.
+        input_level (int, optional): The level for foreground-background segmentation. Defaults to 3.
+        output_level (int, optional): The level for output mask and patch resolution. Defaults to 0.
+        patch_size (tuple, optional): Size of the patches to be extracted. Defaults to (256, 256).
+        stride (tuple, optional): Stride for patch extraction. Defaults to (256, 256).
+        enable_logging (bool, optional): Enable or disable logging. Defaults to False.
+    
+    Returns:
+        None: Patches are saved to the HDF5 file.
+    """
+    # Initialize logging if enabled
+    if enable_logging:
+        logging.basicConfig(filename='extract_and_save_patches.log', level=logging.INFO)
+        logging.info(f'Starting patch extraction for slide {slide_path}')
+    
+    # Preliminary Checks
+    if not os.path.exists(slide_path):
+        error_message = f"Slide file {slide_path} not found."
+        if enable_logging:
+            logging.error(error_message)
+        raise FileNotFoundError(error_message)
+        
+    # Foreground-Background Segmentation
+    mask = foreground_background_segmentation(slide_path, input_level, output_level)
+    
+    # Open the slide using OpenSlide
+    slide = open_slide(slide_path)
+    
+    # Open or create HDF5 file
+    with h5py.File(save_path, 'a') as f:
+        # Create a group for this slide and resolution level if it doesn't exist
+        wsi_group = f.require_group(f"{os.path.basename(slide_path)}/Level_{output_level}")
+        
+        # Patch Extraction and Quality Control
+        for y in range(0, mask.shape[0] - patch_size[0], stride[0]):
+            for x in range(0, mask.shape[1] - patch_size[1], stride[1]):
+                patch_mask = mask[y:y + patch_size[0], x:x + patch_size[1]]
+                
+                # Check the tissue ratio in the mask patch
+                tissue_ratio = np.sum(patch_mask) / (patch_size[0] * patch_size[1])
+                
+                if tissue_ratio >= tissue_threshold:
+                    # Extract the patch from the slide
+                    patch = np.array(slide.read_region((x, y), output_level, patch_size))[:, :, :3]
+                    
+                    # Create a dataset in the HDF5 file to save this patch
+                    patch_name = f"Patch_{x}_{y}"
+                    if patch_name not in wsi_group:
+                        wsi_group.create_dataset(patch_name, data=patch)
+                    
+                    # Add attributes like tissue_ratio for additional metadata if needed
+                    wsi_group[patch_name].attrs['tissue_ratio'] = tissue_ratio
+                    
+                    if enable_logging:
+                        logging.info(f"Saved patch {patch_name} with tissue ratio {tissue_ratio:.2f}")
+                        
+    if enable_logging:
+        logging.info(f"Completed patch extraction for slide {slide_path}")
+
+# Example usage (the actual paths and thresholds should be filled in)
+# extract_and_save_patches_hdf5("slide.svs", "patches.hdf5", 0.6, enable_logging=True)
 
 def visualize_mask_on_slide(slide, mask, level=0):
     """
