@@ -83,17 +83,21 @@ def extract_and_save_patches(slide_path: str, save_path: str, tissue_threshold: 
     Returns:
         None: Patches are saved to the HDF5 file.
     """
-    # Initialize logging if enabled
-    if enable_logging:
-        logging.basicConfig(filename=f"extract_and_save_patches_{slide_path}.log", level=logging.INFO)
-        logging.info(f'Starting patch extraction for slide {slide_path}')
     
     # Preliminary Checks
     if not os.path.exists(slide_path):
         error_message = f"Slide file {slide_path} not found."
-        if enable_logging:
-            logging.error(error_message)
         raise FileNotFoundError(error_message)
+    
+    # Initialize logging if enabled
+    if enable_logging:
+        # Extract the base name (file name + extension)
+        slide_name_w_ext = os.path.basename(slide_path)
+        # Remove the file extension to get only the file name
+        name_without_ext = os.path.splitext(slide_name_w_ext)[0]
+
+        logging.basicConfig(filename=f"extract_and_save_patches_{name_without_ext}.log", level=logging.INFO)
+        logging.info(f'Starting patch extraction for slide {name_without_ext}')
         
     # Foreground-Background Segmentation
     mask = foreground_background_segmentation(slide_path, input_level, output_level)
