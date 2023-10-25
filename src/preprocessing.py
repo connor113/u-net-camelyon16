@@ -2,10 +2,10 @@ import os
 import logging
 from openslide import open_slide
 import numpy as np
-from matplotlib import pyplot as plt
 import xml.etree.ElementTree as ET
 import random
 import cv2
+import h5py
 from skimage.draw import polygon
 
 
@@ -85,7 +85,7 @@ def extract_and_save_patches(slide_path: str, save_path: str, tissue_threshold: 
     """
     # Initialize logging if enabled
     if enable_logging:
-        logging.basicConfig(filename='extract_and_save_patches.log', level=logging.INFO)
+        logging.basicConfig(filename=f"extract_and_save_patches_{slide_path}.log", level=logging.INFO)
         logging.info(f'Starting patch extraction for slide {slide_path}')
     
     # Preliminary Checks
@@ -97,9 +97,14 @@ def extract_and_save_patches(slide_path: str, save_path: str, tissue_threshold: 
         
     # Foreground-Background Segmentation
     mask = foreground_background_segmentation(slide_path, input_level, output_level)
-    
+
     # Open the slide using OpenSlide
     slide = open_slide(slide_path)
+    if enable_logging:
+        logging.info(f"Completed foreground-background segmentation, mask shape: {mask.shape}")
+        logging.info(f"Slide dimensions: {slide.dimensions}")
+        print(mask.shape)
+        print(slide.dimensions)
     
     # Open or create HDF5 file
     with h5py.File(save_path, 'a') as f:
@@ -131,72 +136,9 @@ def extract_and_save_patches(slide_path: str, save_path: str, tissue_threshold: 
                         
     if enable_logging:
         logging.info(f"Completed patch extraction for slide {slide_path}")
-
-# Example usage (the actual paths and thresholds should be filled in)
-# extract_and_save_patches_hdf5("slide.svs", "patches.hdf5", 0.6, enable_logging=True)
-
-def visualize_mask_on_slide(slide, mask, level=0):
-    """
-    Visualize a binary mask overlaid on the original image from an OpenSlide object.
-    
-    Parameters:
-    - slide: The OpenSlide slide object.
-    - mask: Binary mask where 1 indicates foreground and 0 indicates background.
-    - level: Desired level or magnification.
-    
-    """
-    # Extract the image at the desired level
-    img = slide.read_region((0, 0), level, slide.level_dimensions[level])
-    img = np.array(img)[:, :, :3]  # Exclude the alpha channel
-
-    # Create a colored mask (e.g., red for foreground)
-    upsampled_mask = cv2.resize(mask, slide.level_dimensions[level], interpolation=cv2.INTER_LINEAR)
-    colored_mask = np.zeros((upsampled_mask.shape[0], upsampled_mask.shape[1], 3), dtype=np.uint8)
-    colored_mask[upsampled_mask == 1] = [255, 0, 0]  # Red color for foreground
-
-    # Plotting
-    plt.figure(figsize=(10, 10))
-    plt.imshow(img)
-    plt.imshow(colored_mask, alpha=0.4)  # Overlay with transparency
-    plt.axis('off')
-    plt.show()
-
-
-def visualize_mask_on_slide_side_by_side(slide, mask, level=0):
-    """
-    Visualize a binary mask alongside and overlaid on the original image from an OpenSlide object.
-    
-    Parameters:
-    - slide: The OpenSlide slide object.
-    - mask: Binary mask where 1 indicates foreground and 0 indicates background.
-    - level: Desired level or magnification.
-    
-    """
-    # Extract the image at the desired level
-    img = slide.read_region((0, 0), level, slide.level_dimensions[level])
-    img = np.array(img)[:, :, :3]  # Exclude the alpha channel
-
-    # Create a colored mask (e.g., red for foreground)
-    upsampled_mask = cv2.resize(mask, slide.level_dimensions[level], interpolation=cv2.INTER_LINEAR)
-    colored_mask = np.zeros((upsampled_mask.shape[0], upsampled_mask.shape[1], 3), dtype=np.uint8)
-    colored_mask[upsampled_mask == 1] = [255, 0, 0]  # Red color for foreground
-
-    # Plotting
-    fig, ax = plt.subplots(1, 2, figsize=(20, 10))
-    
-    # Original image with overlaid mask
-    ax[0].imshow(img)
-    ax[0].imshow(colored_mask, alpha=0.4)  # Overlay with transparency
-    ax[0].axis('off')
-    ax[0].set_title('Image with Mask Overlay')
-    
-    # Binary mask
-    ax[1].imshow(upsampled_mask, cmap='gray')
-    ax[1].axis('off')
-    ax[1].set_title('Binary Mask')
-    
-    plt.tight_layout()
-    plt.show()
+    return
+    # Example usage (the actual paths and thresholds should be filled in)
+    # extract_and_save_patches_hdf5("slide.svs", "patches.hdf5", 0.6, enable_logging=True)
 
 
 def annotations_to_coordinates(annotation_path):
@@ -552,25 +494,3 @@ def assign_patch_labels(patch_size, patch_origins, gt_mask):
         labels.append(assign_dense_labels(patch_size, patch_origin, gt_mask))
 
     return labels
-
-
-def visualise_patch_and_label(patch, label):
-    """
-    Visualise a patch and its corresponding label.
-
-    Parameters:
-    - patch (np.array): A 3D numpy array representing the patch.
-    - label (np.array): A 2D numpy array representing the label for each pixel in the patch.
-
-    """
-    coloured_label = np.zeros((label.shape[0], label.shape[1], 3), dtype=np.uint8)
-    coloured_label[label == 1] = [255, 0, 0]  # Red color for foreground
-    
-    # Plotting
-    plt.figure(figsize=(5, 5))
-    plt.imshow(patch)
-    plt.imshow(coloured_label, alpha=0.4)  # Overlay with transparency
-    plt.axis('off')
-    plt.tight_layout()
-    plt.show()
-
