@@ -181,6 +181,8 @@ def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_
         wsi_group = f.require_group(f"{name_without_ext}_Level_{output_level}")
 
         level_group = wsi_group.require_group(f"Level_{output_level}")
+        level_group.attrs['slide_dimensions'] = slide.dimensions
+
         # Create sub-groups for patches and labels
         patch_group = level_group.require_group("patches")
         label_group = level_group.require_group("labels")
@@ -204,6 +206,9 @@ def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_
                     
                     # Add attributes like tissue_ratio for additional metadata if needed
                     patch_group[patch_name].attrs['tissue_ratio'] = tissue_ratio
+                    patch_group[patch_name].attrs['patch_size'] = patch_size
+                    patch_group[patch_name].attrs['patch_origin'] = (x, y)
+        
                     
                     if enable_logging:
                         logging.info(f"Saved patch {patch_name} with tissue ratio {tissue_ratio:.2f}")
@@ -216,7 +221,13 @@ def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_
                             label_group.create_dataset(label_name, data=patch_tumor_mask)
                             
                         if enable_logging:
-                            logging.info(f"Saved label {label_name}.")                        
+                            logging.info(f"Saved label {label_name}.")
+                    else:
+                        patch_tumor_mask = np.zeros((patch_size[0], patch_size[1]), dtype=np.uint8)
+                    label_group[label_name].attrs['associated_patch'] = patch_name
+                    label_group[label_name].attrs['patch_size'] = patch_size
+                    label_group[label_name].attrs['patch_origin'] = (x, y)
+                    patch_group[patch_name].attrs['associated_label'] = label_name                        
     if enable_logging:
         logging.info(f"Completed patch extraction for slide {name_without_ext}")
 
