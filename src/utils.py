@@ -144,9 +144,7 @@ def visualize_tumor_patches_from_hdf5_and_annotations(hdf5_path, annotation_path
     # Convert annotations to a binary mask
     polygon_coords = annotations_to_coordinates(annotation_path)
 
-    slide_name_w_ext = os.path.basename(hdf5_path)
-    # Remove the file extension to get only the file name
-    name_without_ext = os.path.splitext(slide_name_w_ext)[0]
+    slide_name = os.path.basename(hdf5_path)
     
     with h5py.File(hdf5_path, 'r') as f:
         wsi_names = list(f.keys())
@@ -169,8 +167,8 @@ def visualize_tumor_patches_from_hdf5_and_annotations(hdf5_path, annotation_path
 
         for y, x in selected_tumor_coords:
         
-            patch_name = f"patch_{name_without_ext}_{x}_{y}"
-            label_name = f"label_{name_without_ext}_{x}_{y}"
+            patch_name = f"patch_{slide_name}_{x}_{y}"
+            label_name = f"label_{slide_name}_{x}_{y}"
 
             if patch_name in patch_group and label_name in label_group:
                 patch_data = np.array(patch_group[patch_name])
