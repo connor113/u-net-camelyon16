@@ -62,18 +62,19 @@ def foreground_background_segmentation(slide_path, input_level=3, output_level=0
     return combined_mask
 
 
-def extract_and_save_patches(slide_path: str, save_path: str, tissue_threshold: float, 
-                                  input_level: int = 3, output_level: int = 0,
-                                  patch_size: tuple = (256, 256), stride: tuple = (256, 256),
-                                  enable_logging: bool = False):
+def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_threshold: float, 
+                                  annotation_path: str = None, input_level: int = 3,
+                                  output_level: int = 0, patch_size: tuple = (256, 256),
+                                  stride: tuple = (256, 256), enable_logging: bool = False):
     """
-    Extract and save patches from a whole slide image based on a tissue threshold.
-    Patches are saved in an HDF5 file.
+    Extract and save patches and labels from a whole slide image based on a tissue threshold.
+    Patches and Lables are saved in an HDF5 file.
     
     Parameters:
         slide_path (str): Path to the whole slide image.
         save_path (str): Path to the HDF5 file where patches will be saved.
         tissue_threshold (float): Minimum percentage of tissue required to save a patch.
+        annotation_path (str, optional): Path to the XML file containing annotations. Defaults to None.
         input_level (int, optional): The level for foreground-background segmentation. Defaults to 3.
         output_level (int, optional): The level for output mask and patch resolution. Defaults to 0.
         patch_size (tuple, optional): Size of the patches to be extracted. Defaults to (256, 256).
@@ -81,7 +82,7 @@ def extract_and_save_patches(slide_path: str, save_path: str, tissue_threshold: 
         enable_logging (bool, optional): Enable or disable logging. Defaults to False.
     
     Returns:
-        None: Patches are saved to the HDF5 file.
+        None: Patches and labels are saved to the HDF5 file at the given save_path.
     """
     
     # Preliminary Checks
@@ -98,7 +99,18 @@ def extract_and_save_patches(slide_path: str, save_path: str, tissue_threshold: 
 
         logging.basicConfig(filename=f"extract_and_save_patches_{name_without_ext}.log", level=logging.INFO)
         logging.info(f'Starting patch extraction for slide {name_without_ext}')
+
+    # Initialize tumor mask if annotations are provided
+    tumor_mask = None
+    if annotation_path is not None:
+        if not os.path.exists(annotation_path):
+            raise FileNotFoundError(f"Annotation file {annotation_path} not found.")
         
+        polygon_coords = annotations_to_coordinates(annotation_path)
+        tumor_mask = coordinates_to_mask(polygon_coords, slide.dimensions)
+        
+        if enable_logging:
+            logging.info(f"Initialized tumor mask from annotations.")
     # Foreground-Background Segmentation
     mask = foreground_background_segmentation(slide_path, input_level, output_level)
 
@@ -107,13 +119,15 @@ def extract_and_save_patches(slide_path: str, save_path: str, tissue_threshold: 
     if enable_logging:
         logging.info(f"Completed foreground-background segmentation, mask shape: {mask.shape}")
         logging.info(f"Slide dimensions: {slide.dimensions}")
-        print(mask.shape)
-        print(slide.dimensions)
     
+
     # Open or create HDF5 file
     with h5py.File(save_path, 'a') as f:
         # Create a group for this slide and resolution level if it doesn't exist
-        wsi_group = f.require_group(f"{os.path.basename(slide_path)}/Level_{output_level}")
+        wsi_group = f.require_group(f"{name_without_ext}_Level_{output_level}")
+        # Create sub-groups for patches and labels
+        patch_group = wsi_group.require_group("patches")
+        label_group = wsi_group.require_group("labels")
         
         # Patch Extraction and Quality Control
         for y in range(0, mask.shape[0] - patch_size[0], stride[0]):
@@ -128,21 +142,27 @@ def extract_and_save_patches(slide_path: str, save_path: str, tissue_threshold: 
                     patch = np.array(slide.read_region((x, y), output_level, patch_size))[:, :, :3]
                     
                     # Create a dataset in the HDF5 file to save this patch
-                    patch_name = f"Patch_{x}_{y}"
-                    if patch_name not in wsi_group:
-                        wsi_group.create_dataset(patch_name, data=patch)
+                    patch_name = f"Patch_{name_without_ext}_{x}_{y}"
+                    if patch_name not in patch_group:
+                        patch_group.create_dataset(patch_name, data=patch)
                     
                     # Add attributes like tissue_ratio for additional metadata if needed
-                    wsi_group[patch_name].attrs['tissue_ratio'] = tissue_ratio
+                    patch_group[patch_name].attrs['tissue_ratio'] = tissue_ratio
                     
                     if enable_logging:
                         logging.info(f"Saved patch {patch_name} with tissue ratio {tissue_ratio:.2f}")
-                        
+
+                    # Save associated label if a tumor mask is available
+                    if tumor_mask is not None:
+                        patch_tumor_mask = tumor_mask[y:y + patch_size[0], x:x + patch_size[1]]
+                        label_name = f"label_{x}_{y}"
+                        if label_name not in label_group:
+                            label_group.create_dataset(label_name, data=patch_tumor_mask)
+                            
+                        if enable_logging:
+                            logging.info(f"Saved label {label_name}.")                        
     if enable_logging:
-        logging.info(f"Completed patch extraction for slide {slide_path}")
-    return
-    # Example usage (the actual paths and thresholds should be filled in)
-    # extract_and_save_patches_hdf5("slide.svs", "patches.hdf5", 0.6, enable_logging=True)
+        logging.info(f"Completed patch extraction for slide {name_without_ext}")
 
 
 def annotations_to_coordinates(annotation_path):
