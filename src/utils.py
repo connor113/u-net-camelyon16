@@ -148,6 +148,7 @@ def visualize_tumor_patches_from_hdf5_and_annotations(hdf5_path, annotation_path
     
     with h5py.File(hdf5_path, 'r') as f:
         wsi_names = list(f.keys())
+        print(f"Slide name: {wsi_names[0]}")
         slide_dims = f[wsi_names[0]].attrs['slide_dimensions']
         tumor_mask = coordinates_to_mask(polygon_coords, slide_dims)
 
