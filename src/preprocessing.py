@@ -102,6 +102,10 @@ def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_
 
     # Initialize tumor mask if annotations are provided
     tumor_mask = None
+
+    # Open the slide using OpenSlide
+    slide = open_slide(slide_path)
+    
     if annotation_path is not None:
         if not os.path.exists(annotation_path):
             raise FileNotFoundError(f"Annotation file {annotation_path} not found.")
@@ -114,8 +118,6 @@ def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_
     # Foreground-Background Segmentation
     mask = foreground_background_segmentation(slide_path, input_level, output_level)
 
-    # Open the slide using OpenSlide
-    slide = open_slide(slide_path)
     if enable_logging:
         logging.info(f"Completed foreground-background segmentation, mask shape: {mask.shape}")
         logging.info(f"Slide dimensions: {slide.dimensions}")
