@@ -2,6 +2,7 @@ from openslide import open_slide
 import numpy as np
 from matplotlib import pyplot as plt
 import cv2
+import h5py
 
 def visualize_mask_on_slide(slide, mask, level=0):
     """
@@ -86,3 +87,44 @@ def visualise_patch_and_label(patch, label):
     plt.axis('off')
     plt.tight_layout()
     plt.show()
+
+def visualize_patches_from_hdf5(hdf5_path, num_patches=5):
+    """
+    Visualize patches and their corresponding labels from an HDF5 file.
+
+    Parameters:
+        hdf5_path (str): Path to the HDF5 file.
+        num_patches (int): Number of random patches to visualize.
+    """
+    with h5py.File(hdf5_path, 'r') as f:
+        # Assuming the file structure is WSI/Level/patches and WSI/Level/labels
+        wsi_names = list(f.keys())
+        level_names = list(f[wsi_names[0]].keys())
+        
+        patch_group = f[f"{wsi_names[0]}/{level_names[0]}/patches"]
+        label_group = f[f"{wsi_names[0]}/{level_names[0]}/labels"]
+        
+        patch_names = list(patch_group.keys())
+        label_names = list(label_group.keys())
+        
+        # Randomly select patches to visualize
+        selected_indices = np.random.choice(len(patch_names), num_patches, replace=False)
+        
+        for idx in selected_indices:
+            patch_name = patch_names[idx]
+            label_name = label_names[idx]  # Assuming patch and label names correspond
+            
+            patch_data = np.array(patch_group[patch_name])
+            label_data = np.array(label_group[label_name])
+            
+            fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+            
+            axes[0].imshow(patch_data)
+            axes[0].set_title(f"Patch: {patch_name}")
+            axes[0].axis("off")
+            
+            axes[1].imshow(label_data, cmap='gray')
+            axes[1].set_title(f"Label: {label_name}")
+            axes[1].axis("off")
+            
+            plt.show()    

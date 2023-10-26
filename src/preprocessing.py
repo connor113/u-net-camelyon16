@@ -62,6 +62,58 @@ def foreground_background_segmentation(slide_path, input_level=3, output_level=0
     return combined_mask
 
 
+def annotations_to_coordinates(annotation_path):
+    """
+    Parses the given XML file to extract coordinates of annotated regions.
+
+    Parameters:
+    - annotation_path (str): Path to the XML file.
+
+    Returns:
+    - polygons (list): List of polygons where each polygon is represented as a list of 
+                       (x, y) coordinate tuples.
+
+    Note:
+    The coordinates are provided in the form (y, x) which corresponds to (row, column) in 
+    image matrices. This is the standard convention for image processing tasks.
+    
+    """
+
+    # Parse the XML file
+    tree = ET.parse(annotation_path)
+    root = tree.getroot()
+
+    # Extracting the polygons from the annotations
+    polygons = []
+    for annotation in root.findall('.//Annotation'):
+        # Extracting (y, x) coordinates for each annotated point
+        points = [(float(coord.attrib['Y']), float(coord.attrib['X'])) for coord in annotation.findall('.//Coordinate')]
+        polygons.append(points)
+
+    return polygons
+
+
+def coordinates_to_mask(polygon_coords, slide_dims):
+    """
+    Convert a list of polygon coordinates to a binary mask.
+    
+    Args:
+    - polygon_coords (list): List of polygons where each polygon is a list of (x, y) coordinates.
+    - slide_dims (tuple): Dimensions of the slide (width, height).
+    
+    Returns:
+    - numpy.ndarray: Binary mask with ones where the annotations are and zeros elsewhere.
+    """
+    mask = np.zeros((slide_dims[1], slide_dims[0]), dtype=np.uint8)
+
+    for coords in polygon_coords:
+        x_coords, y_coords = zip(*coords)
+        rr, cc = polygon(x_coords, y_coords)
+        mask[rr, cc] = 1
+
+    return mask
+
+
 def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_threshold: float, 
                                   annotation_path: str = None, input_level: int = 3,
                                   output_level: int = 0, patch_size: tuple = (256, 256),
@@ -144,7 +196,7 @@ def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_
                     patch = np.array(slide.read_region((x, y), output_level, patch_size))[:, :, :3]
                     
                     # Create a dataset in the HDF5 file to save this patch
-                    patch_name = f"Patch_{name_without_ext}_{x}_{y}"
+                    patch_name = f"patch_{name_without_ext}_{x}_{y}"
                     if patch_name not in patch_group:
                         patch_group.create_dataset(patch_name, data=patch)
                     
@@ -157,7 +209,7 @@ def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_
                     # Save associated label if a tumor mask is available
                     if tumor_mask is not None:
                         patch_tumor_mask = tumor_mask[y:y + patch_size[0], x:x + patch_size[1]]
-                        label_name = f"label_{x}_{y}"
+                        label_name = f"label_{name_without_ext}_{x}_{y}"
                         if label_name not in label_group:
                             label_group.create_dataset(label_name, data=patch_tumor_mask)
                             
@@ -165,58 +217,6 @@ def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_
                             logging.info(f"Saved label {label_name}.")                        
     if enable_logging:
         logging.info(f"Completed patch extraction for slide {name_without_ext}")
-
-
-def annotations_to_coordinates(annotation_path):
-    """
-    Parses the given XML file to extract coordinates of annotated regions.
-
-    Parameters:
-    - annotation_path (str): Path to the XML file.
-
-    Returns:
-    - polygons (list): List of polygons where each polygon is represented as a list of 
-                       (x, y) coordinate tuples.
-
-    Note:
-    The coordinates are provided in the form (y, x) which corresponds to (row, column) in 
-    image matrices. This is the standard convention for image processing tasks.
-    
-    """
-
-    # Parse the XML file
-    tree = ET.parse(annotation_path)
-    root = tree.getroot()
-
-    # Extracting the polygons from the annotations
-    polygons = []
-    for annotation in root.findall('.//Annotation'):
-        # Extracting (y, x) coordinates for each annotated point
-        points = [(float(coord.attrib['Y']), float(coord.attrib['X'])) for coord in annotation.findall('.//Coordinate')]
-        polygons.append(points)
-
-    return polygons
-
-
-def coordinates_to_mask(polygon_coords, slide_dims):
-    """
-    Convert a list of polygon coordinates to a binary mask.
-    
-    Args:
-    - polygon_coords (list): List of polygons where each polygon is a list of (x, y) coordinates.
-    - slide_dims (tuple): Dimensions of the slide (width, height).
-    
-    Returns:
-    - numpy.ndarray: Binary mask with ones where the annotations are and zeros elsewhere.
-    """
-    mask = np.zeros((slide_dims[1], slide_dims[0]), dtype=np.uint8)
-
-    for coords in polygon_coords:
-        x_coords, y_coords = zip(*coords)
-        rr, cc = polygon(x_coords, y_coords)
-        mask[rr, cc] = 1
-
-    return mask
 
 
 def sample_positive_patches(slide_path, polygons, patch_size, num_patches, level=0):
