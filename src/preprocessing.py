@@ -179,9 +179,11 @@ def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_
     with h5py.File(save_path, 'a') as f:
         # Create a group for this slide and resolution level if it doesn't exist
         wsi_group = f.require_group(f"{name_without_ext}_Level_{output_level}")
+
+        level_group = wsi_group.require_group(f"Level_{output_level}")
         # Create sub-groups for patches and labels
-        patch_group = wsi_group.require_group("patches")
-        label_group = wsi_group.require_group("labels")
+        patch_group = level_group.require_group("patches")
+        label_group = level_group.require_group("labels")
         
         # Patch Extraction and Quality Control
         for y in range(0, mask.shape[0] - patch_size[0], stride[0]):
