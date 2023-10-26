@@ -178,7 +178,7 @@ def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_
     # Open or create HDF5 file
     with h5py.File(save_path, 'a') as f:
         # Create a group for this slide and resolution level if it doesn't exist
-        wsi_group = f.require_group(f"{name_without_ext}_Level_{output_level}")
+        wsi_group = f.require_group(f"{name_without_ext}")
 
         level_group = wsi_group.require_group(f"Level_{output_level}")
         level_group.attrs['slide_dimensions'] = slide.dimensions

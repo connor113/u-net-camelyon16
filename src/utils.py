@@ -132,13 +132,14 @@ def visualize_patches_from_hdf5(hdf5_path, num_patches=5):
             plt.show()
 
 
-def visualize_tumor_patches_from_hdf5_and_annotations(hdf5_path, annotation_path, num_patches=5):
+def visualize_tumor_patches_from_hdf5_and_annotations(hdf5_path, annotation_path, level= 0, num_patches=5):
     """
     Visualize patches that overlap with tumor regions in an HDF5 file using XML annotations.
 
     Parameters:
         hdf5_path (str): Path to the HDF5 file.
         annotation_path (str): Path to the XML annotation file.
+        level (int): Level of magnification of patches to visualize.
         num_patches (int): Number of random patches to visualize.
     """
     # Convert annotations to a binary mask
@@ -148,7 +149,9 @@ def visualize_tumor_patches_from_hdf5_and_annotations(hdf5_path, annotation_path
     
     with h5py.File(hdf5_path, 'r') as f:
         wsi_names = list(f.keys())
-        slide_dims = f[wsi_names[1]].attrs['slide_dimensions']
+        slide_dims = f[f"{wsi_names[0]}/Level_{level}"].attrs['slide_dimensions']
+        patch_group = f[f"{wsi_names[0]}/Level_{level}/patches"]
+        label_group = f[f"{wsi_names[0]}/Level_{level}/labels"]
         tumor_mask = coordinates_to_mask(polygon_coords, slide_dims)
 
         # Find coordinates where the tumor mask is 1
@@ -156,15 +159,6 @@ def visualize_tumor_patches_from_hdf5_and_annotations(hdf5_path, annotation_path
 
         # Randomly select tumor coordinates
         selected_tumor_coords = tumor_coords[np.random.choice(tumor_coords.shape[0], num_patches, replace=False), :]
-
-    with h5py.File(hdf5_path, 'r') as f:
-        # Assuming the file structure is WSI/Level/patches and WSI/Level/labels
-        wsi_names = list(f.keys())
-        level_names = list(f[wsi_names[0]].keys())
-        
-        patch_group = f[f"{wsi_names[0]}/{level_names[0]}/patches"]
-        label_group = f[f"{wsi_names[0]}/{level_names[0]}/labels"]
-
         for y, x in selected_tumor_coords:
         
             patch_name = f"patch_{slide_name}_{x}_{y}"
@@ -184,4 +178,4 @@ def visualize_tumor_patches_from_hdf5_and_annotations(hdf5_path, annotation_path
                 axes[1].set_title(f"Label: {label_name}")
                 axes[1].axis("off")
 
-                plt.show()    
+                plt.show()
