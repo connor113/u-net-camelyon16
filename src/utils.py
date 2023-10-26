@@ -1,8 +1,10 @@
+import os
 from openslide import open_slide
 import numpy as np
 from matplotlib import pyplot as plt
 import cv2
 import h5py
+from src.preprocessing import annotations_to_coordinates, coordinates_to_mask
 
 def visualize_mask_on_slide(slide, mask, level=0):
     """
@@ -127,4 +129,61 @@ def visualize_patches_from_hdf5(hdf5_path, num_patches=5):
             axes[1].set_title(f"Label: {label_name}")
             axes[1].axis("off")
             
-            plt.show()    
+            plt.show()
+
+
+def visualize_tumor_patches_from_hdf5_and_annotations(hdf5_path, annotation_path, num_patches=5):
+    """
+    Visualize patches that overlap with tumor regions in an HDF5 file using XML annotations.
+
+    Parameters:
+        hdf5_path (str): Path to the HDF5 file.
+        annotation_path (str): Path to the XML annotation file.
+        num_patches (int): Number of random patches to visualize.
+    """
+    # Convert annotations to a binary mask
+    polygon_coords = annotations_to_coordinates(annotation_path)
+
+    slide_name_w_ext = os.path.basename(hdf5_path)
+    # Remove the file extension to get only the file name
+    name_without_ext = os.path.splitext(slide_name_w_ext)[0]
+    
+    with h5py.File(hdf5_path, 'r') as f:
+        wsi_names = list(f.keys())
+        slide_dims = f[wsi_names[0]].attrs['slide_dimensions']
+        tumor_mask = coordinates_to_mask(polygon_coords, slide_dims)
+
+        # Find coordinates where the tumor mask is 1
+        tumor_coords = np.column_stack(np.where(tumor_mask == 1))
+
+        # Randomly select tumor coordinates
+        selected_tumor_coords = tumor_coords[np.random.choice(tumor_coords.shape[0], num_patches, replace=False), :]
+
+    with h5py.File(hdf5_path, 'r') as f:
+        # Assuming the file structure is WSI/Level/patches and WSI/Level/labels
+        wsi_names = list(f.keys())
+        level_names = list(f[wsi_names[0]].keys())
+        
+        patch_group = f[f"{wsi_names[0]}/{level_names[0]}/patches"]
+        label_group = f[f"{wsi_names[0]}/{level_names[0]}/labels"]
+
+        for y, x in selected_tumor_coords:
+        
+            patch_name = f"patch_{name_without_ext}_{x}_{y}"
+            label_name = f"label_{name_without_ext}_{x}_{y}"
+
+            if patch_name in patch_group and label_name in label_group:
+                patch_data = np.array(patch_group[patch_name])
+                label_data = np.array(label_group[label_name])
+
+                fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+
+                axes[0].imshow(patch_data)
+                axes[0].set_title(f"Patch: {patch_name}")
+                axes[0].axis("off")
+
+                axes[1].imshow(label_data, cmap='gray')
+                axes[1].set_title(f"Label: {label_name}")
+                axes[1].axis("off")
+
+                plt.show()    
