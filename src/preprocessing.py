@@ -148,8 +148,11 @@ def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_
         slide_name_w_ext = os.path.basename(slide_path)
         # Remove the file extension to get only the file name
         name_without_ext = os.path.splitext(slide_name_w_ext)[0]
-
-        logging.basicConfig(filename=f"extract_and_save_patches_{name_without_ext}.log", level=logging.INFO)
+        save_dir = os.path.dirname(save_path)
+        log_dir = os.path.join(save_dir, 'logs')
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        logging.basicConfig(filename=os.path.join(log_dir, f"{name_without_ext}.log"), level=logging.INFO)
         logging.info(f'Starting patch extraction for slide {name_without_ext}')
 
     # Initialize tumor mask if annotations are provided
