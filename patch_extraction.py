@@ -1,4 +1,5 @@
 import os
+import tqdm
 # Get the current working directory
 current_path = os.getcwd()
 # Define the relative paths to your data and .venv folders
@@ -21,6 +22,7 @@ def main():
     preprocessed_patches_root = os.path.join(data_root, 'preprocessed_patches')
     
     # Handle training set
+    print("Processing training set...")
     for subset in ['train']:
         for slide_type in ['normal', 'tumor']:
             slide_folder = os.path.join(raw_root, subset, slide_type)
@@ -29,12 +31,13 @@ def main():
                 process_slides(slide_folder, subset, slide_type, annotations_root, preprocessed_patches_root)
     
     # Handle test set
+    print("Processing test set...")
     test_folder = os.path.join(raw_root, 'test')
     if os.path.exists(test_folder):
         process_test_slides(test_folder, 'test', annotations_root, preprocessed_patches_root)
 
 def process_slides(slide_folder, subset, slide_type, annotations_root, preprocessed_patches_root):
-    for slide in os.listdir(slide_folder):
+    for slide in tqdm(os.listdir(slide_folder)):
         slide_path = os.path.join(slide_folder, slide)
         
         # Determine if there's an associated annotation
@@ -60,7 +63,7 @@ def process_slides(slide_folder, subset, slide_type, annotations_root, preproces
         )
 
 def process_test_slides(test_folder, subset, annotations_root, preprocessed_patches_root):
-    for slide in os.listdir(test_folder):
+    for slide in tqdm(os.listdir(test_folder)):
         slide_path = os.path.join(test_folder, slide)
         
         # Determine if there's an associated annotation
