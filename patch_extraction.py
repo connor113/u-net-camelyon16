@@ -22,16 +22,15 @@ def main():
     preprocessed_patches_root = os.path.join(data_root, 'preprocessed_patches')
     
     # Handle training set
-    print("Processing training set...")
+    tqdm.write("Processing training set...")
     for subset in ['train']:
         for slide_type in ['normal', 'tumor']:
             slide_folder = os.path.join(raw_root, subset, slide_type)
-            
+            tqdm.write(f"Processing {slide_type} slides...")
             if os.path.exists(slide_folder):
                 process_slides(slide_folder, subset, slide_type, annotations_root, preprocessed_patches_root)
-    
     # Handle test set
-    print("Processing test set...")
+    tqdm.write("Processing test set...")
     test_folder = os.path.join(raw_root, 'test')
     if os.path.exists(test_folder):
         process_test_slides(test_folder, 'test', annotations_root, preprocessed_patches_root)

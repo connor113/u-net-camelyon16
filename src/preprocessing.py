@@ -1,5 +1,6 @@
 import os
 import logging
+from tqdm import tqdm
 from openslide import open_slide
 import numpy as np
 import xml.etree.ElementTree as ET
@@ -155,7 +156,6 @@ def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_
         logging.basicConfig(filename=os.path.join(log_dir, f"{name_without_ext}.log"), level=logging.INFO)
         logging.info(f'Starting patch extraction for slide {name_without_ext}')
 
-    (f'Starting patch extraction for slide {name_without_ext}')
     # Initialize tumor mask if annotations are provided
     tumor_mask = None
 
