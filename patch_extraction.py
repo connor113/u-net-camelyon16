@@ -1,5 +1,5 @@
 import os
-import tqdm
+from tqdm import tqdm
 # Get the current working directory
 current_path = os.getcwd()
 # Define the relative paths to your data and .venv folders
