@@ -1,8 +1,21 @@
 import os
+# Get the current working directory
+current_path = os.getcwd()
+# Define the relative paths to your data and .venv folders
+venv_path = os.path.join(current_path, '.venv')
+
+# Use the relative paths in your code
+OPENSLIDE_PATH = os.path.join(venv_path, 'Lib', 'site-packages', 'openslide-win64-20230414', 'bin')
+
+if hasattr(os, 'add_dll_directory'):
+    with os.add_dll_directory(OPENSLIDE_PATH):
+        import openslide
+else:
+    import openslide
 from src.preprocessing import extract_and_save_patches_and_labels
 
 def main():
-    data_root = os.path.join(os.path.curdir, 'data')
+    data_root = os.path.join(current_path, 'data')
     raw_root = os.path.join(data_root, 'raw')
     annotations_root = os.path.join(data_root, 'annotations')
     preprocessed_patches_root = os.path.join(data_root, 'preprocessed_patches')
@@ -42,7 +55,7 @@ def process_slides(slide_folder, subset, slide_type, annotations_root, preproces
         # Call your patch extraction function
         extract_and_save_patches_and_labels(
             slide_path, save_path, tissue_threshold=0.3,  # other parameters here
-            annotation_path=annotation_path, patch_size=(512, 512), stride_size=(512, 512),
+            annotation_path=annotation_path, patch_size=(512, 512), stride=(512, 512),
             enable_logging=True
         )
 
@@ -66,7 +79,7 @@ def process_test_slides(test_folder, subset, annotations_root, preprocessed_patc
         # Call your patch extraction function
         extract_and_save_patches_and_labels(
             slide_path, save_path, tissue_threshold=0.3,  # other parameters here
-            annotation_path=annotation_path, patch_size=(512, 512), stride_size=(512, 512),
+            annotation_path=annotation_path, patch_size=(512, 512), stride=(512, 512),
             enable_logging=True
         )
 

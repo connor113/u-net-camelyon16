@@ -219,14 +219,15 @@ def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_
                     # Save associated label if a tumor mask is available
                     if tumor_mask is not None:
                         patch_tumor_mask = tumor_mask[y:y + patch_size[0], x:x + patch_size[1]]
-                        label_name = f"label_{name_without_ext}_{x}_{y}"
-                        if label_name not in label_group:
-                            label_group.create_dataset(label_name, data=patch_tumor_mask)
-                            
-                        if enable_logging:
-                            logging.info(f"Saved label {label_name}.")
                     else:
                         patch_tumor_mask = np.zeros((patch_size[0], patch_size[1]), dtype=np.uint8)
+                        
+                    label_name = f"label_{name_without_ext}_{x}_{y}"
+                    if label_name not in label_group:
+                        label_group.create_dataset(label_name, data=patch_tumor_mask)
+                        
+                    if enable_logging:
+                        logging.info(f"Saved label {label_name}.")
                     label_group[label_name].attrs['associated_patch'] = patch_name
                     label_group[label_name].attrs['patch_size'] = patch_size
                     label_group[label_name].attrs['patch_origin'] = (x, y)
