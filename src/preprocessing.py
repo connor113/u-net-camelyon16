@@ -221,7 +221,7 @@ def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_
                         patch_tumor_mask = tumor_mask[y:y + patch_size[0], x:x + patch_size[1]]
                     else:
                         patch_tumor_mask = np.zeros((patch_size[0], patch_size[1]), dtype=np.uint8)
-                        
+
                     label_name = f"label_{name_without_ext}_{x}_{y}"
                     if label_name not in label_group:
                         label_group.create_dataset(label_name, data=patch_tumor_mask)
@@ -234,6 +234,10 @@ def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_
                     patch_group[patch_name].attrs['associated_label'] = label_name                        
     if enable_logging:
         logging.info(f"Completed patch extraction for slide {name_without_ext}")
+        handlers = logging.root.handlers[:]
+        for handler in handlers:
+            handler.close()
+            logging.root.removeHandler(handler)
 
 
 def sample_positive_patches(slide_path, polygons, patch_size, num_patches, level=0):
