@@ -2,6 +2,7 @@ import os
 from openslide import open_slide
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib.patches import Rectangle
 import cv2
 import h5py
 from src.preprocessing import annotations_to_coordinates, coordinates_to_mask
@@ -125,10 +126,12 @@ def visualize_patches_from_hdf5(hdf5_path, num_patches=5):
             axes[0].set_title(f"Patch: {patch_name}")
             axes[0].axis("off")
             
-            axes[1].imshow(label_data, cmap='gray')
+            axes[1].imshow(label_data, cmap='gray', vmin=0, vmax=1)
             axes[1].set_title(f"Label: {label_name}")
             axes[1].axis("off")
             
+            rect = Rectangle((0, 0), label_data.shape[1] - 1, label_data.shape[0] - 1, linewidth=1, edgecolor='black', facecolor='none')
+            axes[1].add_patch(rect)
             plt.show()
 
 
