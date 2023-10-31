@@ -136,6 +136,8 @@ def coordinates_to_mask_2(polygon_coords, slide_dims):
     for rr, cc in results:
         mask[rr, cc] = 1
 
+    return mask
+
 
 
 def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_threshold: float, 
