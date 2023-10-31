@@ -46,7 +46,7 @@ def process_slides(slide_folder, subset, slide_type, annotations_root, preproces
             annotation_path = os.path.join(annotations_root, subset, annotation_file)
             
             if not os.path.exists(annotation_path):
-                print(f"Annotation for {slide} not found. Skipping.")
+                tqdm.write(f"Annotation for {slide} not found. Skipping.")
                 continue
         
         # Define the save path

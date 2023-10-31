@@ -106,13 +106,10 @@ def coordinates_to_mask(polygon_coords, slide_dims):
 
     mask = np.zeros((slide_dims[1], slide_dims[0]), dtype=np.uint8)
 
-    coords_time = time.time()
     for coords in polygon_coords:
         x_coords, y_coords = zip(*coords)
         rr, cc = polygon(x_coords, y_coords)
         mask[rr, cc] = 1
-
-    print(f"Converting coordinates to mask took {time.time() - coords_time} seconds.")
 
     return mask
 
