@@ -8,9 +8,6 @@ import random
 import cv2
 import h5py
 from skimage.draw import polygon
-import time
-from multiprocessing import Pool
-
 
 def foreground_background_segmentation(slide_path, input_level=3, output_level=0):
     """
@@ -118,27 +115,6 @@ def coordinates_to_mask(polygon_coords, slide_dims):
     print(f"Converting coordinates to mask took {time.time() - coords_time} seconds.")
 
     return mask
-
-
-def process_polygon(coords):
-    coords = np.array(coords)
-    x_coords = coords[:, 1]
-    y_coords = coords[:, 0]
-    rr, cc = polygon(y_coords, x_coords)
-    return rr, cc
-
-
-def coordinates_to_mask_2(polygon_coords, slide_dims):
-    mask = np.zeros((slide_dims[1], slide_dims[0]), dtype=np.uint8)
-
-    with Pool(processes=24) as pool:  # adjust the number of processes according to your CPU cores
-        results = pool.map(process_polygon, polygon_coords)
-
-    for rr, cc in results:
-        mask[rr, cc] = 1
-
-    return mask
-
 
 
 def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_threshold: float, 
