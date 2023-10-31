@@ -8,6 +8,7 @@ import random
 import cv2
 import h5py
 from skimage.draw import polygon
+from time import time
 
 def foreground_background_segmentation(slide_path, input_level=3, output_level=0):
     """
@@ -113,6 +114,14 @@ def coordinates_to_mask(polygon_coords, slide_dims):
 
     return mask
 
+def fill_polygons_with_opencv(polygon_coords, slide_dims):
+    mask = np.zeros((slide_dims[1], slide_dims[0]), dtype=np.uint8)
+    start_time = time()
+    for coords in polygon_coords:
+        cv2.fillPoly(mask, [np.array(coords, 'int32')], 1)
+    end_time = time()
+    print(f"Time taken: {end_time - start_time}")
+    return mask
 
 def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_threshold: float, 
                                   annotation_path: str = None, input_level: int = 3,
