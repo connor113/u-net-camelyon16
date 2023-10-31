@@ -9,6 +9,7 @@ import cv2
 import h5py
 from skimage.draw import polygon
 import time
+from multiprocessing import Pool
 
 
 def foreground_background_segmentation(slide_path, input_level=3, output_level=0):
@@ -80,20 +81,17 @@ def annotations_to_coordinates(annotation_path):
     image matrices. This is the standard convention for image processing tasks.
     
     """
-    start_time = time.time()
     # Parse the XML file
     tree = ET.parse(annotation_path)
     root = tree.getroot()
-    print(f"XML parsing took {time.time() - start_time} seconds.")
+
     # Extracting the polygons from the annotations
-    extract_time = time.time()
     polygons = []
     for annotation in root.findall('.//Annotation'):
         # Extracting (y, x) coordinates for each annotated point
         points = [(float(coord.attrib['Y']), float(coord.attrib['X'])) for coord in annotation.findall('.//Coordinate')]
         polygons.append(points)
-    print(f"Extracting polygons took {time.time() - extract_time} seconds.")
-    print(f"Total time: {time.time() - start_time} seconds.")
+
     return polygons
 
 
@@ -108,17 +106,36 @@ def coordinates_to_mask(polygon_coords, slide_dims):
     Returns:
     - numpy.ndarray: Binary mask with ones where the annotations are and zeros elsewhere.
     """
-    start_time = time.time()
+
     mask = np.zeros((slide_dims[1], slide_dims[0]), dtype=np.uint8)
-    print(f"Initializing mask took {time.time() - start_time} seconds.")
+
     coords_time = time.time()
     for coords in polygon_coords:
         x_coords, y_coords = zip(*coords)
         rr, cc = polygon(x_coords, y_coords)
         mask[rr, cc] = 1
+
     print(f"Converting coordinates to mask took {time.time() - coords_time} seconds.")
-    print(f"Total time: {time.time() - start_time} seconds.")
+
     return mask
+
+def process_polygon(coords):
+    coords = np.array(coords)
+    x_coords = coords[:, 1]
+    y_coords = coords[:, 0]
+    rr, cc = polygon(y_coords, x_coords)
+    return rr, cc
+
+def coordinates_to_mask_2(polygon_coords, slide_dims):
+    mask = np.zeros((slide_dims[1], slide_dims[0]), dtype=np.uint8)
+    coords_time = time.time()
+
+    with Pool(processes=24) as pool:  # adjust the number of processes according to your CPU cores
+        results = pool.map(process_polygon, polygon_coords)
+
+    for rr, cc in results:
+        mask[rr, cc] = 1
+
 
 
 def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_threshold: float, 
