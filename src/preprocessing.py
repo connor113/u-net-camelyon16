@@ -119,6 +119,7 @@ def coordinates_to_mask(polygon_coords, slide_dims):
 
     return mask
 
+
 def process_polygon(coords):
     coords = np.array(coords)
     x_coords = coords[:, 1]
@@ -126,9 +127,9 @@ def process_polygon(coords):
     rr, cc = polygon(y_coords, x_coords)
     return rr, cc
 
+
 def coordinates_to_mask_2(polygon_coords, slide_dims):
     mask = np.zeros((slide_dims[1], slide_dims[0]), dtype=np.uint8)
-    coords_time = time.time()
 
     with Pool(processes=24) as pool:  # adjust the number of processes according to your CPU cores
         results = pool.map(process_polygon, polygon_coords)
