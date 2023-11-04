@@ -116,7 +116,7 @@ def coordinates_to_mask(polygon_coords, slide_dims):
 
 
 def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_threshold: float, 
-                                  annotation_path: str = None, input_level: int = 3,
+                                  mask_path: str = None, input_level: int = 3,
                                   output_level: int = 0, patch_size: tuple = (256, 256),
                                   stride: tuple = (256, 256), enable_logging: bool = False):
     """
@@ -127,7 +127,7 @@ def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_
         slide_path (str): Path to the whole slide image.
         save_path (str): Path to the HDF5 file where patches will be saved.
         tissue_threshold (float): Minimum percentage of tissue required to save a patch.
-        annotation_path (str, optional): Path to the XML file containing annotations. Defaults to None.
+        mask_path (str, optional): Path to the binary mask file. Defaults to None.
         input_level (int, optional): The level for foreground-background segmentation. Defaults to 3.
         output_level (int, optional): The level for output mask and patch resolution. Defaults to 0.
         patch_size (tuple, optional): Size of the patches to be extracted. Defaults to (256, 256).
@@ -158,19 +158,19 @@ def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_
 
     # Initialize tumor mask if annotations are provided
     tumor_mask = None
-
+    is_tumor = False
     # Open the slide using OpenSlide
     slide = open_slide(slide_path)
     
-    if annotation_path is not None:
-        if not os.path.exists(annotation_path):
-            raise FileNotFoundError(f"Annotation file {annotation_path} not found.")
+    if mask_path is not None:
+        if not os.path.exists(mask_path):
+            raise FileNotFoundError(f"Binary Mask file {mask_path} not found.")
         
-        polygon_coords = annotations_to_coordinates(annotation_path)
-        tumor_mask = coordinates_to_mask(polygon_coords, slide.dimensions)
-        
+        # Load the binary mask
+        tumor_mask = np.load(mask_path)['mask']
+        is_tumor = True
         if enable_logging:
-            logging.info(f"Initialized tumor mask from annotations.")
+            logging.info(f"Initialized tumor mask from binary mask file.")
     # Foreground-Background Segmentation
     mask = foreground_background_segmentation(slide_path, input_level, output_level)
 
@@ -181,17 +181,21 @@ def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_
 
     # Open or create HDF5 file
     with h5py.File(save_path, 'a') as f:
-        # Create a group for this slide and resolution level if it doesn't exist
+        # Create a group for this slide, resolution level and patch size if it doesn't exist
         wsi_group = f.require_group(f"{name_without_ext}")
 
         level_group = wsi_group.require_group(f"Level_{output_level}")
         level_group.attrs['slide_dimensions'] = slide.dimensions
 
+        size_group = level_group.require_group(f"Patch_Size_{patch_size[0]}")
+        size_group.attrs['patch_size'] = patch_size
+        size_group.attrs['is_tumor'] = is_tumor
         # Create sub-groups for patches and labels
-        patch_group = level_group.require_group("patches")
-        label_group = level_group.require_group("labels")
+        patch_group = size_group.require_group("patches")
+        label_group = size_group.require_group("labels")
         
         # Patch Extraction and Quality Control
+        patch_counter = 0
         for y in range(0, mask.shape[0] - patch_size[0], stride[0]):
             for x in range(0, mask.shape[1] - patch_size[1], stride[1]):
                 patch_mask = mask[y:y + patch_size[0], x:x + patch_size[1]]
@@ -204,7 +208,7 @@ def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_
                     patch = np.array(slide.read_region((x, y), output_level, patch_size))[:, :, :3]
                     
                     # Create a dataset in the HDF5 file to save this patch
-                    patch_name = f"patch_{name_without_ext}_{x}_{y}"
+                    patch_name = f"patch_{patch_counter:05d}"
                     if patch_name not in patch_group:
                         patch_group.create_dataset(patch_name, data=patch)
                     
@@ -220,10 +224,12 @@ def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_
                     # Save associated label if a tumor mask is available
                     if tumor_mask is not None:
                         patch_tumor_mask = tumor_mask[y:y + patch_size[0], x:x + patch_size[1]]
+                        contains_tumor = np.any(patch_tumor_mask == 1)
                     else:
                         patch_tumor_mask = np.zeros((patch_size[0], patch_size[1]), dtype=np.uint8)
+                        contains_tumor = False
 
-                    label_name = f"label_{name_without_ext}_{x}_{y}"
+                    label_name = f"label_{patch_counter:05d}"
                     if label_name not in label_group:
                         label_group.create_dataset(label_name, data=patch_tumor_mask)
                         
@@ -232,7 +238,13 @@ def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_
                     label_group[label_name].attrs['associated_patch'] = patch_name
                     label_group[label_name].attrs['patch_size'] = patch_size
                     label_group[label_name].attrs['patch_origin'] = (x, y)
-                    patch_group[patch_name].attrs['associated_label'] = label_name                        
+                    label_group[label_name].attrs['contains_positive'] = contains_tumor
+                    patch_group[patch_name].attrs['associated_label'] = label_name
+                    patch_group[patch_name].attrs['contains_positive'] = contains_tumor
+
+                    patch_counter += 1
+        
+        size_group.attrs['total_patches'] = patch_counter
     if enable_logging:
         logging.info(f"Completed patch extraction for slide {name_without_ext}")
         handlers = logging.root.handlers[:]
