@@ -39,7 +39,7 @@ def main():
     for slide_path in tqdm(tumor_slides):
         slide_id = os.path.splitext(slide_path)[0]
         annotation_path = os.path.join(annotations_root, 'train', f"{slide_id}.xml")
-        mask_save_path = os.path.join(save_path, 'train', f"{slide_id}.npy")
+        mask_save_path = os.path.join(save_path, 'train', f"{slide_id}.npz")
 
         # Open the slide using OpenSlide
         slide = openslide.open_slide(os.path.join(tumor_path, slide_path))
