@@ -92,6 +92,35 @@ def annotations_to_coordinates(annotation_path):
 
     return polygons
 
+def annotations_to_coordinates_flipped(annotation_path):
+    """
+    Parses the given XML file to extract coordinates of annotated regions.
+
+    Parameters:
+    - annotation_path (str): Path to the XML file.
+
+    Returns:
+    - polygons (list): List of polygons where each polygon is represented as a list of 
+                       (x, y) coordinate tuples.
+
+    Note:
+    The coordinates are provided in the form (y, x) which corresponds to (row, column) in 
+    image matrices. This is the standard convention for image processing tasks.
+    
+    """
+    # Parse the XML file
+    tree = ET.parse(annotation_path)
+    root = tree.getroot()
+
+    # Extracting the polygons from the annotations
+    polygons = []
+    for annotation in root.findall('.//Annotation'):
+        # Extracting (y, x) coordinates for each annotated point
+        points = [(float(coord.attrib['X']), float(coord.attrib['Y'])) for coord in annotation.findall('.//Coordinate')]
+        polygons.append(points)
+
+    return polygons
+
 
 def coordinates_to_mask(polygon_coords, slide_dims):
     """
@@ -111,6 +140,29 @@ def coordinates_to_mask(polygon_coords, slide_dims):
         x_coords, y_coords = zip(*coords)
         rr, cc = polygon(x_coords, y_coords)
         mask[rr, cc] = 1
+
+    return mask
+
+
+def coordinates_to_mask_cv2(polygon_coords, slide_dims):
+    """
+    Convert a list of polygon coordinates to a binary mask using OpenCV's fillPoly.
+
+    Args:
+    - polygon_coords (list): List of polygons where each polygon is a list of (x, y) coordinates.
+    - slide_dims (tuple): Dimensions of the slide (width, height).
+
+    Returns:
+    - numpy.ndarray: Binary mask with ones where the annotations are and zeros elsewhere.
+    """
+    # Initialize the mask as a zero array with the same dimensions as the slide.
+    mask = np.zeros((slide_dims[1], slide_dims[0]), dtype=np.uint8)
+
+    # Convert polygon coordinates to integer and to the appropriate shape for fillPoly.
+    int_polygons = [np.array(coords, dtype=np.int32).reshape((-1, 1, 2)) for coords in polygon_coords]
+
+    # Fill the polygons with 1's.
+    cv2.fillPoly(mask, int_polygons, color=1)
 
     return mask
 

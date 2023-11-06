@@ -21,26 +21,7 @@ def main():
     slide_root = os.path.join(data_root, 'raw')
     annotations_root = os.path.join(data_root, 'annotations')
     save_path = os.path.join(data_root, 'masks')
-
-    tumor_path = os.path.join(slide_root, 'train', 'tumor')
     test_path = os.path.join(slide_root, 'test')
-
-    tumor_slides = os.listdir(tumor_path)
-
-    tqdm.write("Processing training set...")
-
-    for slide_filename in tqdm(tumor_slides):
-        slide_id = os.path.splitext(slide_filename)[0]
-        annotation_path = os.path.join(annotations_root, 'train', f"{slide_id}.xml")
-        mask_save_path = os.path.join(save_path, 'train', f"{slide_id}.npz")
-
-        slide = openslide.open_slide(os.path.join(tumor_path, slide_filename))
-        slide_dims = slide.dimensions
-        polygon_coords = pre.annotations_to_coordinates_flipped(annotation_path)
-        mask = pre.coordinates_to_mask_cv2(polygon_coords, slide_dims)
-        np.savez_compressed(mask_save_path, mask=mask)
-        slide.close()
-
     test_slides = os.listdir(test_path)
 
     tqdm.write("Processing test set...")
