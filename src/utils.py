@@ -103,9 +103,10 @@ def visualize_patches_from_hdf5(hdf5_path, num_patches=5):
         # Assuming the file structure is WSI/Level/patches and WSI/Level/labels
         wsi_names = list(f.keys())
         level_names = list(f[wsi_names[0]].keys())
+        size_names = list(f[f"{wsi_names[0]}/{level_names[0]}"].keys())
         
-        patch_group = f[f"{wsi_names[0]}/{level_names[0]}/patches"]
-        label_group = f[f"{wsi_names[0]}/{level_names[0]}/labels"]
+        patch_group = f[f"{wsi_names[0]}/{level_names[0]}/{size_names[0]}/patches"]
+        label_group = f[f"{wsi_names[0]}/{level_names[0]}/{size_names[0]}/labels"]
         
         patch_names = list(patch_group.keys())
         label_names = list(label_group.keys())
