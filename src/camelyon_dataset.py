@@ -1,4 +1,4 @@
-
+import torch
 from torch.utils.data import Dataset
 import h5py
 import os
@@ -73,6 +73,8 @@ class CamelyonDataset(Dataset):
 
                 patch = patch_group[patch_name][()]
                 label = label_group[label_name][()]
+
+                label = torch.tensor(label, dtype=torch.long)
 
                 if self.transform:
                     patch = self.transform(patch)
