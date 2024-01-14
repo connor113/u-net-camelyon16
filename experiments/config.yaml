@@ -1,0 +1,21 @@
+model:
+  architecture: "UNet"
+  layers: 5
+  features_start: 64
+  bilinear: false
+
+training:
+  learning_rate: 0.001
+  batch_size: 32
+  num_epochs: 20
+  device: "cuda"  # or "cpu"
+
+data:
+  train_path: "data/preprocessed_patches/train"
+  test_path: "data/preprocessed_patches/test"
+  patch_size: [512, 512]
+
+logging:
+  checkpoint_dir: "experiments/checkpoints"
+  log_dir: "experiments/logs"
+  save_freq: 5

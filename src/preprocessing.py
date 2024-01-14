@@ -304,6 +304,63 @@ def extract_and_save_patches_and_labels(slide_path: str, save_path: str, tissue_
             handler.close()
             logging.root.removeHandler(handler)
 
+def extract_pure_patches(input_files: list, output_file: str, enable_logging: bool = False):
+    """
+    Extracts and saves completely positive or negative patches from a list of HDF5 files to a new HDF5 file.
+
+    Parameters:
+        input_files (list): List of file paths to existing HDF5 files.
+        output_file (str): Path to the new HDF5 file where selected patches will be saved.
+        enable_logging (bool, optional): Enable or disable logging. Defaults to False.
+    
+    Returns:
+        None: Patches and labels are saved to the new HDF5 file.
+    """
+
+    # Initialize logging if enabled
+    if enable_logging:
+        logging.basicConfig(filename=f"{output_file}_extraction.log", level=logging.INFO)
+
+    with h5py.File(output_file, 'w') as output_h5:
+        for file_path in input_files:
+            with h5py.File(file_path, 'r') as input_h5:
+                for wsi_name in input_h5.keys():
+                    for level_name in input_h5[wsi_name].keys():
+                        for size_name in input_h5[wsi_name][level_name].keys():
+                            patch_group = input_h5[wsi_name][level_name][size_name]['patches']
+                            label_group = input_h5[wsi_name][level_name][size_name]['labels']
+
+                            for patch_name, patch_dataset in patch_group.items():
+                                label_dataset = label_group[patch_dataset.attrs['associated_label']]
+                                label_data = label_dataset[...]
+
+                                # Calculate the percentage of positive pixels
+                                positive_percentage = np.mean(label_data)
+                                
+                                # Check if the patch is completely positive or negative
+                                if positive_percentage == 1.0 or positive_percentage == 0.0:
+                                    # Save the patch and label in the new HDF5 file
+                                    output_patch_group = output_h5.require_group(f'{wsi_name}/{level_name}/{size_name}/patches')
+                                    output_label_group = output_h5.require_group(f'{wsi_name}/{level_name}/{size_name}/labels')
+
+                                    output_patch_group.create_dataset(patch_name, data=patch_dataset[...])
+                                    output_label_group.create_dataset(patch_dataset.attrs['associated_label'], data=label_dataset[...])
+
+                                    # Copy attributes
+                                    for attr_key, attr_value in patch_dataset.attrs.items():
+                                        output_patch_group[patch_name].attrs[attr_key] = attr_value
+                                    for attr_key, attr_value in label_dataset.attrs.items():
+                                        output_label_group[patch_dataset.attrs['associated_label']].attrs[attr_key] = attr_value
+
+                                    # Add new attribute for positive percentage
+                                    output_label_group[patch_dataset.attrs['associated_label']].attrs['positive_percentage'] = positive_percentage
+
+                                    if enable_logging:
+                                        logging.info(f"Saved patch {patch_name} with positive percentage {positive_percentage}")
+
+    if enable_logging:
+        logging.info("Completed processing of all files.")
+
 
 def sample_positive_patches(slide_path, polygons, patch_size, num_patches, level=0):
     """
