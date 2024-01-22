@@ -362,8 +362,10 @@ def modify_and_extract_patches(input_files: list, output_file: str, enable_loggi
                                     # Add metadata about original file and patch/label name
                                     pos_patch_group[new_patch_name].attrs['original_file'] = file_path
                                     pos_patch_group[new_patch_name].attrs['original_patch_name'] = patch_name
+                                    pos_patch_group[new_patch_name].attrs['associated_label'] = new_label_name
                                     pos_label_group[new_label_name].attrs['original_file'] = file_path
                                     pos_label_group[new_label_name].attrs['original_label_name'] = patch_dataset.attrs['associated_label']
+                                    pos_label_group[new_label_name].attrs['associated_patch'] = new_patch_name
 
                                     # Update counters
                                     positive_patch_count += 1
@@ -382,8 +384,10 @@ def modify_and_extract_patches(input_files: list, output_file: str, enable_loggi
                                     # Add metadata about original file and patch/label name
                                     neg_patch_group[new_patch_name].attrs['original_file'] = file_path
                                     neg_patch_group[new_patch_name].attrs['original_patch_name'] = patch_name
+                                    neg_patch_group[new_patch_name].attrs['associated_label'] = new_label_name
                                     neg_label_group[new_label_name].attrs['original_file'] = file_path
                                     neg_label_group[new_label_name].attrs['original_label_name'] = patch_dataset.attrs['associated_label']
+                                    neg_label_group[new_label_name].attrs['associated_patch'] = new_patch_name
 
                                     # Update counters
                                     negative_patch_count += 1
