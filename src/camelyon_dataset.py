@@ -61,7 +61,7 @@ class CamelyonDataset(Dataset):
         file_index, patch_index = self.index_mapping[idx]
         hdf5_path = self.hdf5_paths[file_index]
         wsi_name = os.path.splitext(os.path.basename(hdf5_path))[0]
-        print(file_index, patch_index, hdf5_path, wsi_name)
+
         try:
             with h5py.File(hdf5_path, 'r') as file:
                 group_path = f"{wsi_name}/Level_{self.output_level}/Patch_Size_{self.patch_size[0]}"
@@ -78,6 +78,7 @@ class CamelyonDataset(Dataset):
 
                 if self.transform:
                     patch = self.transform(patch)
+                print(file_index, patch_index, patch_group[patch_name].atts['patch_origin'])
 
         except (FileNotFoundError, KeyError) as e:
             raise ValueError(f"Error accessing HDF5 file: {hdf5_path}. {str(e)}")
