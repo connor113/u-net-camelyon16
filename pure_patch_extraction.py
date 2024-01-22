@@ -13,18 +13,25 @@ if hasattr(os, 'add_dll_directory'):
         import openslide
 else:
     import openslide
-from src.preprocessing import extract_pure_patches
+from src.preprocessing import modify_and_extract_patches
 
 def main():
-    data_root = os.path.join(current_path, 'data')
-    test_root = os.path.join(data_root, 'test')
-    file_list = [os.path.join(test_root, file) for file in os.listdir(test_root)]
+    data_root = os.path.join(current_path, 'data/preprocessed_patches')
+    train_root = os.path.join(data_root, 'train/tumor')
+    test_root = os.path.join(data_root, 'test/test')
+    train_list = [os.path.join(train_root, file) for file in os.listdir(train_root)]
+    test_list = [os.path.join(test_root, file) for file in os.listdir(test_root)]
 
-    new_file_path = os.path.join(data_root, 'new_test.h5')
+    train_file_path = os.path.join(data_root, 'pure_train.h5')
+    test_file_path = os.path.join(data_root, 'pure_test.h5')
     # Handle test set
+    tqdm.write("Processing train...")
+
+    modify_and_extract_patches(train_list, train_file_path, True)
+
     tqdm.write("Processing test...")
 
-    extract_pure_patches(file_list, new_file_path, True)
+    modify_and_extract_patches(test_list, test_file_path, True)
 
 if __name__ == '__main__':
     main()

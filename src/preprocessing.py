@@ -320,18 +320,24 @@ def modify_and_extract_patches(input_files: list, output_file: str, enable_loggi
     # Initialize logging if enabled
     if enable_logging:
         logging.basicConfig(filename=f"{output_file}_extraction.log", level=logging.INFO)
-
+    tqdm.write(f"Starting patch extraction to {output_file}...")
     # Initialize counters for positive and negative patches
     positive_patch_count = 0
     negative_patch_count = 0
 
     with h5py.File(output_file, 'w') as output_h5:
         # Create groups for positive and negative patches
-        positive_group = output_h5.create_group("positive_patches")
-        negative_group = output_h5.create_group("negative_patches")
+        positive_group = output_h5.create_group("positives")
+        negative_group = output_h5.create_group("negatives")
 
-        for file_path in input_files:
-            with h5py.File(file_path, 'a') as input_h5:  # Open in append mode to modify
+        pos_patch_group = positive_group.create_group("patches")
+        pos_label_group = positive_group.create_group("labels")
+
+        neg_patch_group = negative_group.create_group("patches")
+        neg_label_group = negative_group.create_group("labels")
+
+        for file_path in tqdm(input_files):
+            with h5py.File(file_path, 'r') as input_h5:  # Open in read mode
                 for wsi_name in input_h5.keys():
                     for level_name in input_h5[wsi_name].keys():
                         for size_name in input_h5[wsi_name][level_name].keys():
@@ -340,37 +346,50 @@ def modify_and_extract_patches(input_files: list, output_file: str, enable_loggi
 
                             for patch_name, patch_dataset in patch_group.items():
                                 label_dataset = label_group[patch_dataset.attrs['associated_label']]
-                                label_data = label_dataset[...]
+                                label_data = label_dataset[()]
 
-                                # Calculate and save positive percentage in original file
-                                positive_percentage = np.mean(label_data)
-                                label_dataset.attrs['positive_percentage'] = positive_percentage
+                                positive_percentage = label_dataset.attrs['positive_percentage']
 
                                 # Extract completely positive or negative patches
-                                if positive_percentage == 1.0 or positive_percentage == 0.0:
-                                    group = positive_group if positive_percentage == 1.0 else negative_group
-                                    patch_count = positive_patch_count if positive_percentage == 1.0 else negative_patch_count
-                                    new_patch_name = f"positive_patch_{patch_count:05d}" if positive_percentage == 1.0 else f"negative_patch_{patch_count:05d}"
-                                    new_label_name = f"positive_label_{patch_count:05d}" if positive_percentage == 1.0 else f"negative_label_{patch_count:05d}"
+                                if positive_percentage == 1.0:
+                                    new_patch_name = f"patch_{positive_patch_count:05d}"
+                                    new_label_name = f"label_{positive_patch_count:05d}"
 
                                     # Save in new HDF5 file
-                                    group.create_dataset(new_patch_name, data=patch_dataset[...])
-                                    group.create_dataset(new_label_name, data=label_data)
+                                    pos_patch_group.create_dataset(new_patch_name, data=patch_dataset[()])
+                                    pos_label_group.create_dataset(new_label_name, data=label_data)
 
                                     # Add metadata about original file and patch/label name
-                                    group[new_patch_name].attrs['original_file'] = file_path
-                                    group[new_patch_name].attrs['original_patch_name'] = patch_name
-                                    group[new_label_name].attrs['original_file'] = file_path
-                                    group[new_label_name].attrs['original_label_name'] = patch_dataset.attrs['associated_label']
+                                    pos_patch_group[new_patch_name].attrs['original_file'] = file_path
+                                    pos_patch_group[new_patch_name].attrs['original_patch_name'] = patch_name
+                                    pos_label_group[new_label_name].attrs['original_file'] = file_path
+                                    pos_label_group[new_label_name].attrs['original_label_name'] = patch_dataset.attrs['associated_label']
 
                                     # Update counters
-                                    if positive_percentage == 1.0:
-                                        positive_patch_count += 1
-                                    else:
-                                        negative_patch_count += 1
+                                    positive_patch_count += 1
 
                                     if enable_logging:
-                                        logging.info(f"Saved {new_patch_name} with positive percentage {positive_percentage}")
+                                        logging.info(f"Saved pos_{new_patch_name} with positive percentage {positive_percentage}")
+
+                                elif positive_percentage == 0.0:
+                                    new_patch_name = f"patch_{negative_patch_count:05d}"
+                                    new_label_name = f"label_{negative_patch_count:05d}"
+
+                                    # Save in new HDF5 file
+                                    neg_patch_group.create_dataset(new_patch_name, data=patch_dataset[()])
+                                    neg_label_group.create_dataset(new_label_name, data=label_data)
+
+                                    # Add metadata about original file and patch/label name
+                                    neg_patch_group[new_patch_name].attrs['original_file'] = file_path
+                                    neg_patch_group[new_patch_name].attrs['original_patch_name'] = patch_name
+                                    neg_label_group[new_label_name].attrs['original_file'] = file_path
+                                    neg_label_group[new_label_name].attrs['original_label_name'] = patch_dataset.attrs['associated_label']
+
+                                    # Update counters
+                                    negative_patch_count += 1
+
+                                    if enable_logging:
+                                        logging.info(f"Saved neg_{new_patch_name} with positive percentage {positive_percentage}")
 
         # Set attributes for the number of patches in each group
         positive_group.attrs['total_patches'] = positive_patch_count
@@ -378,6 +397,10 @@ def modify_and_extract_patches(input_files: list, output_file: str, enable_loggi
 
     if enable_logging:
         logging.info("Completed processing of all files.")
+        handlers = logging.root.handlers[:]
+        for handler in handlers:
+            handler.close()
+            logging.root.removeHandler(handler)
 
 
 def sample_positive_patches(slide_path, polygons, patch_size, num_patches, level=0):
