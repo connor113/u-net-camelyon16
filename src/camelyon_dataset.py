@@ -78,7 +78,7 @@ class CamelyonDataset(Dataset):
 
                 if self.transform:
                     patch = self.transform(patch)
-                print(file_index, patch_index, patch_group[patch_name].atts['patch_origin'])
+                print(file_index, patch_index, patch_group[patch_name].attrs['patch_origin'])
 
         except (FileNotFoundError, KeyError) as e:
             raise ValueError(f"Error accessing HDF5 file: {hdf5_path}. {str(e)}")
