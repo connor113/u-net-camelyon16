@@ -59,7 +59,7 @@ class PureCamelyonDataset(Dataset):
             mapping.append(('negatives', key))
 
         # Shuffle the mapping to mix positive and negative patches
-        #np.random.shuffle(mapping)
+        np.random.shuffle(mapping)
         return mapping
 
     def __len__(self):
