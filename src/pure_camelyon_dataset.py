@@ -78,5 +78,10 @@ class PureCamelyonDataset(Dataset):
             label = torch.tensor(label, dtype=torch.long)
             if self.transform:
                 patch = self.transform(patch)
-        return patch, label
+
+            metadata = {
+                'original_file': file[group_name]['patches'][patch_key].attrs['original_file'],
+                'original_patch_origin': file[group_name]['patches'][patch_key].attrs['original_patch_origin'],
+            }
+        return patch, label, metadata
     
