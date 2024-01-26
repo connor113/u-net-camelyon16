@@ -409,9 +409,10 @@ def modify_and_extract_patches(input_files: list, output_file: str, enable_loggi
                     toal_positive_patch_count += positive_patch_count
                     total_negative_patch_count += negative_patch_count
 
-                input_h5.attrs['total_positive_patches'] = toal_positive_patch_count
-                input_h5.attrs['total_negative_patches'] = total_negative_patch_count
-                input_h5.attrs['total_patches'] = toal_positive_patch_count + total_negative_patch_count
+        output_h5.attrs['total_positive_patches'] = toal_positive_patch_count
+        output_h5.attrs['total_negative_patches'] = total_negative_patch_count
+        output_h5.attrs['total_patches'] = toal_positive_patch_count + total_negative_patch_count
+        
     if enable_logging:
         logging.info("Completed processing of all files.")
         handlers = logging.root.handlers[:]
