@@ -326,19 +326,23 @@ def modify_and_extract_patches(input_files: list, output_file: str, enable_loggi
     negative_patch_count = 0
 
     with h5py.File(output_file, 'w') as output_h5:
-        # Create groups for positive and negative patches
-        positive_group = output_h5.create_group("positives")
-        negative_group = output_h5.create_group("negatives")
-
-        pos_patch_group = positive_group.create_group("patches")
-        pos_label_group = positive_group.create_group("labels")
-
-        neg_patch_group = negative_group.create_group("patches")
-        neg_label_group = negative_group.create_group("labels")
 
         for file_path in tqdm(input_files):
             with h5py.File(file_path, 'r') as input_h5:  # Open in read mode
                 for wsi_name in input_h5.keys():
+                    # Create group for each WSI in the output HDF5 file
+                    wsi_group = output_h5.require_group(wsi_name)
+
+                    # Create groups for positive and negative patches
+                    positive_group = wsi_group.create_group("positives")
+                    negative_group = wsi_group.create_group("negatives")
+
+                    pos_patch_group = positive_group.create_group("patches")
+                    pos_label_group = positive_group.create_group("labels")
+
+                    neg_patch_group = negative_group.create_group("patches")
+                    neg_label_group = negative_group.create_group("labels")
+
                     for level_name in input_h5[wsi_name].keys():
                         for size_name in input_h5[wsi_name][level_name].keys():
                             patch_group = input_h5[wsi_name][level_name][size_name]['patches']
@@ -352,15 +356,15 @@ def modify_and_extract_patches(input_files: list, output_file: str, enable_loggi
 
                                 # Extract completely positive or negative patches
                                 if positive_percentage == 1.0:
-                                    new_patch_name = f"patch_{positive_patch_count:05d}"
-                                    new_label_name = f"label_{positive_patch_count:05d}"
+                                    new_patch_name = f"{wsi_name}_patch_{positive_patch_count:05d}"
+                                    new_label_name = f"{wsi_name}_label_{positive_patch_count:05d}"
 
                                     # Save in new HDF5 file
                                     pos_patch_group.create_dataset(new_patch_name, data=patch_dataset[()])
                                     pos_label_group.create_dataset(new_label_name, data=label_data)
 
                                     # Add metadata about original file and patch/label name
-                                    pos_patch_group[new_patch_name].attrs['original_file'] = file_path
+                                    pos_patch_group[new_patch_name].attrs['original_file'] = wsi_name
                                     pos_patch_group[new_patch_name].attrs['original_patch_origin'] = patch_dataset.attrs['patch_origin']
                                     pos_patch_group[new_patch_name].attrs['original_patch_name'] = patch_name
                                     pos_patch_group[new_patch_name].attrs['associated_label'] = new_label_name
@@ -375,15 +379,15 @@ def modify_and_extract_patches(input_files: list, output_file: str, enable_loggi
                                         logging.info(f"Saved pos_{new_patch_name} with positive percentage {positive_percentage}")
 
                                 elif positive_percentage == 0.0:
-                                    new_patch_name = f"patch_{negative_patch_count:05d}"
-                                    new_label_name = f"label_{negative_patch_count:05d}"
+                                    new_patch_name = f"{wsi_name}_patch_{negative_patch_count:05d}"
+                                    new_label_name = f"{wsi_name}_label_{negative_patch_count:05d}"
 
                                     # Save in new HDF5 file
                                     neg_patch_group.create_dataset(new_patch_name, data=patch_dataset[()])
                                     neg_label_group.create_dataset(new_label_name, data=label_data)
 
                                     # Add metadata about original file and patch/label name
-                                    neg_patch_group[new_patch_name].attrs['original_file'] = file_path
+                                    neg_patch_group[new_patch_name].attrs['original_file'] = wsi_name
                                     neg_patch_group[new_patch_name].attrs['original_patch_name'] = patch_name
                                     neg_patch_group[new_patch_name].attrs['original_patch_origin'] = patch_dataset.attrs['patch_origin']
                                     neg_patch_group[new_patch_name].attrs['associated_label'] = new_label_name
