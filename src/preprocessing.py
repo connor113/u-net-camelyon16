@@ -322,14 +322,16 @@ def modify_and_extract_patches(input_files: list, output_file: str, enable_loggi
         logging.basicConfig(filename=f"{output_file}_extraction.log", level=logging.INFO)
     tqdm.write(f"Starting patch extraction to {output_file}...")
     # Initialize counters for positive and negative patches
-    positive_patch_count = 0
-    negative_patch_count = 0
+    toal_positive_patch_count = 0
+    total_negative_patch_count = 0
 
     with h5py.File(output_file, 'w') as output_h5:
 
         for file_path in tqdm(input_files):
             with h5py.File(file_path, 'r') as input_h5:  # Open in read mode
                 for wsi_name in input_h5.keys():
+                    positive_patch_count = 0
+                    negative_patch_count = 0
                     # Create group for each WSI in the output HDF5 file
                     wsi_group = output_h5.require_group(wsi_name)
 
@@ -401,10 +403,15 @@ def modify_and_extract_patches(input_files: list, output_file: str, enable_loggi
                                     if enable_logging:
                                         logging.info(f"Saved neg_{new_patch_name} with positive percentage {positive_percentage}")
 
-        # Set attributes for the number of patches in each group
-        positive_group.attrs['total_patches'] = positive_patch_count
-        negative_group.attrs['total_patches'] = negative_patch_count
+                    # Set attributes for the number of patches in each group
+                    positive_group.attrs['total_patches'] = positive_patch_count
+                    negative_group.attrs['total_patches'] = negative_patch_count
+                    toal_positive_patch_count += positive_patch_count
+                    total_negative_patch_count += negative_patch_count
 
+                input_h5.attrs['total_positive_patches'] = toal_positive_patch_count
+                input_h5.attrs['total_negative_patches'] = total_negative_patch_count
+                input_h5.attrs['total_patches'] = toal_positive_patch_count + total_negative_patch_count
     if enable_logging:
         logging.info("Completed processing of all files.")
         handlers = logging.root.handlers[:]
